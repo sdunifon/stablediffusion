@@ -2,8 +2,11 @@ FROM ubuntu as sd
 ENV CUDA_HOME=/usr/local/cuda-11.4
 ENV MAIN_WORKDIR=/workspace/sd
 ENV MODELS_DIR=/workspace/models
+ARG USERNAME=sd
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
 
-
+USER root
 RUN apt-get update
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install git curl build-essential wget python3 python3-pip
@@ -11,12 +14,32 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 RUN echo "alias python=python3" > ~/.profile
 SHELL ["/bin/bash", "-lc"]
 
+
+ENV CONDA_DIR /opt/conda
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p /opt/conda
+# Put conda in path so we can use conda activate
+ENV PATH=$CONDA_DIR/bin:$PATH
+
+
+
+# Create the user and give sudo powers
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    #
+    # [Optional] Add sudo support. Omit if you don't need to install software after connecting.
+    && apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+
+USER $USERNAME
+WORKDIR ${MAIN_WORKDIR}
+
 # RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 
-
-
 # RUN cargo install fd-find ripgrep
 
-WORKDIR ${MAIN_WORKDIR}
 
 COPY requirements.txt .
 COPY setup.py .
@@ -42,10 +65,7 @@ CMD "/bin/bash"
 
 FROM sd as xformers
 WORKDIR /workspace/xformers
-RUN mkdir  /xformers
-RUN git clone https://github.com/facebookresearch/xformers.git /xformers
-WORKDIR /xformers
-
+RUN git clone https://github.com/facebookresearch/xformers.git /workspace/xformers
 RUN git submodule update --init --recursive
 RUN pip install -r requirements.txt
 RUN pip install -e .
