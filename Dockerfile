@@ -1,9 +1,10 @@
 
 FROM ubuntu as sd
 ENV CUDA_HOME=/usr/local/cuda-11.4
-ENV MAIN_WORKDIR=/workspace/sd
-ENV MODELS_DIR=/workspace/models
-ENV XFORMERS_DIR=/workspace/xformers
+ENV WORKSPACE_DIR=/workspaces
+ENV MAIN_WORKDIR=${WORKSPACE_DIR}/sd
+ENV MODELS_DIR=${WORKSPACE_DIR}/models
+ENV XFORMERS_DIR=${WORKSPACE_DIR}/xformers
 ARG USERNAME=sd
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -77,8 +78,8 @@ WORKDIR ${XFORMERS_DIR}
 USER root
 RUN chown -R ${USERNAME} ${XFORMERS_DIR}
 USER ${USERNAME}
-WORKDIR /workspace/xformers
-RUN git clone https://github.com/facebookresearch/xformers.git /workspace/xformers
+WORKDIR ${XFORMERS_DIR}
+RUN git clone https://github.com/facebookresearch/xformers.git ${XFORMERS_DIR}
 RUN git submodule update --init --recursive
 RUN pip install -r requirements.txt
 RUN pip install -e .
