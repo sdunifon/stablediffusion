@@ -2,7 +2,7 @@
 FROM ubuntu as sd
 ENV CUDA_HOME=/usr/local/cuda-11.4
 ENV WORKSPACE_DIR=/workspaces
-ENV MAIN_WORKDIR=${WORKSPACE_DIR}/sd
+ENV MAIN_WORKDIR=${WORKSPACE_DIR}/stablediffusion
 ENV MODELS_DIR=${WORKSPACE_DIR}/models
 ENV XFORMERS_DIR=${WORKSPACE_DIR}/xformers
 ARG USERNAME=sd
@@ -14,7 +14,7 @@ ENV PATH=/home/${USERNAME}/.local/bin:$CONDA_DIR/bin:$PATH
 USER root
 RUN apt-get update
 RUN export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install git curl build-essential wget python3 python3-pip
+    && apt-get -y install git curl build-essential wget python3 python3-pip libgl1 libglib2.0-0
     
 RUN echo "alias python=python3" > ~/.profile
 SHELL ["/bin/bash", "-lc"]
@@ -66,7 +66,7 @@ WORKDIR ${MODELS_DIR}
 USER root
 RUN chown -R ${USERNAME} ${MODELS_DIR}
 USER ${USERNAME}
-RUN wget https://huggingface.co/stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned.ckpt
+RUN wget https://huggingface.co/stabilityai/stable-diffusion-2-1/resolve/main/v2-1_768-ema-pruned.ckpt
 RUN wget https://huggingface.co/stabilityai/stable-diffusion-2-1-base/resolve/main/v2-1_512-ema-pruned.ckpt
 
 
