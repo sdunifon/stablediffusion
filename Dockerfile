@@ -3,6 +3,7 @@ FROM ubuntu as sd
 ENV CUDA_HOME=/usr/local/cuda-11.4
 ENV MAIN_WORKDIR=/workspace/sd
 ENV MODELS_DIR=/workspace/models
+ENV XFORMERS_DIR=/workspace/xformers
 ARG USERNAME=sd
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -72,7 +73,10 @@ WORKDIR ${MAIN_WORKDIR}
 
 CMD "/bin/bash"
 
-FROM sd as xformers
+WORKDIR ${XFORMERS_DIR}
+USER root
+RUN chown -R ${USERNAME} ${XFORMERS_DIR}
+USER ${USERNAME}
 WORKDIR /workspace/xformers
 RUN git clone https://github.com/facebookresearch/xformers.git /workspace/xformers
 RUN git submodule update --init --recursive
