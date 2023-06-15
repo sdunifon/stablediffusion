@@ -5,6 +5,7 @@ ENV MODELS_DIR=/workspace/models
 ARG USERNAME=sd
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
+ENV PATH=/home/${USERNAME}/.local/bin:$CONDA_DIR/bin:$PATH
 
 USER root
 RUN apt-get update
@@ -18,8 +19,7 @@ SHELL ["/bin/bash", "-lc"]
 ENV CONDA_DIR /opt/conda
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /opt/conda
-# Put conda in path so we can use conda activate
-ENV PATH=$CONDA_DIR/bin:$PATH
+# Put conda in j so we can use conda activate
 
 
 
@@ -34,15 +34,15 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
 
+RUN mkdir -p ${MAIN_WORKDIR}; chown -R ${USERNAME} ${MAIN_WORKDIR}
 USER $USERNAME
 WORKDIR ${MAIN_WORKDIR}
 
-# RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 
-# RUN cargo install fd-find ripgrep
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 
+RUN cargo install fd-find ripgrep
 
 
-COPY requirements.txt .
-COPY setup.py .
+COPY --chown=${USERNAME}:${USERNAME} requirements.txt setup.py ./
 
 RUN python3 -m pip install -r requirements.txt
 
@@ -79,3 +79,4 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 WORKDIR ${MODELS_DIR}
 RUN wget https://huggingface.co/stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned.ckpt
 RUN wget https://huggingface.co/stabilityai/stable-diffusion-2-1-base/resolve/main/v2-1_512-ema-pruned.ckpt
+ 
