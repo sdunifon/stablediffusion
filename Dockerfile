@@ -1,3 +1,4 @@
+
 FROM ubuntu as sd
 ENV CUDA_HOME=/usr/local/cuda-11.4
 ENV MAIN_WORKDIR=/workspace/sd
@@ -5,6 +6,7 @@ ENV MODELS_DIR=/workspace/models
 ARG USERNAME=sd
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
+ENV CONDA_DIR=/home/${USERNAME}/.conda
 ENV PATH=/home/${USERNAME}/.local/bin:$CONDA_DIR/bin:$PATH
 
 USER root
@@ -16,9 +18,7 @@ RUN echo "alias python=python3" > ~/.profile
 SHELL ["/bin/bash", "-lc"]
 
 
-ENV CONDA_DIR /opt/conda
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda
+
 # Put conda in j so we can use conda activate
 
 
@@ -38,6 +38,9 @@ RUN mkdir -p ${MAIN_WORKDIR}; chown -R ${USERNAME} ${MAIN_WORKDIR}
 USER $USERNAME
 WORKDIR ${MAIN_WORKDIR}
 
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p ${CONDA_DIR}
+
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 
 RUN cargo install fd-find ripgrep
 
@@ -51,13 +54,19 @@ RUN conda install pytorch==1.12.1 torchvision==0.13.1 -c pytorch
 RUN pip install transformers==4.19.2 diffusers invisible-watermark
 RUN pip install -e .
 
-#xformers
+#xformer
 RUN conda install -c nvidia/label/cuda-11.4.0 cuda-nvcc
 RUN conda install -c conda-forge gcc
 RUN conda install -c conda-forge gxx_linux-64==9.5.0
 
+
 WORKDIR ${MODELS_DIR}
-COPY --from=models /workspace/models .
+USER root
+RUN chown -R ${USERNAME} ${MODELS_DIR}
+USER ${USERNAME}
+RUN wget https://huggingface.co/stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned.ckpt
+RUN wget https://huggingface.co/stabilityai/stable-diffusion-2-1-base/resolve/main/v2-1_512-ema-pruned.ckpt
+
 
 WORKDIR ${MAIN_WORKDIR}
 
@@ -70,13 +79,3 @@ RUN git submodule update --init --recursive
 RUN pip install -r requirements.txt
 RUN pip install -e .
 
-
-
-
-FROM ubuntu as models
-RUN export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install wget
-WORKDIR ${MODELS_DIR}
-RUN wget https://huggingface.co/stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned.ckpt
-RUN wget https://huggingface.co/stabilityai/stable-diffusion-2-1-base/resolve/main/v2-1_512-ema-pruned.ckpt
- 
